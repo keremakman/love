@@ -69,5 +69,7 @@ export function LetterModal({ isOpen, onClose, letter }: LetterModalProps) {
         </motion.div>
       )}
     </AnimatePresence>
-  );
+      );
+    }
+  )
 }
