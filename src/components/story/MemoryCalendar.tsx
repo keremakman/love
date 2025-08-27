@@ -39,12 +39,19 @@ export function MemoryCalendar({ specialDate }: MemoryCalendarProps) {
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 1.0 }}
-      className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-pink-200"
+      className="bg-white/90 backdrop-blur-sm rounded-3xl p-10 shadow-2xl border border-rose-200"
     >
       <div className="text-center mb-6">
-        <CalendarIcon className="w-8 h-8 text-pink-500 mx-auto mb-2" />
-        <h3 className="text-2xl font-bold text-gray-800 mb-2">Our Special Day</h3>
-        <p className="text-gray-600">{monthNames[month]} {year}</p>
+        <motion.div
+          animate={{ rotateY: [0, 360] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+        >
+          <CalendarIcon className="w-10 h-10 text-rose-500 mx-auto mb-4" />
+        </motion.div>
+        <h3 className="text-3xl font-bold text-gray-800 mb-3 bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
+          Özel Günümüz
+        </h3>
+        <p className="text-gray-700 text-lg">{monthNames[month]} {year}</p>
       </div>
       
       <div className="max-w-sm mx-auto">

@@ -66,14 +66,14 @@ export function MusicPlayer({ musicUrl }: MusicPlayerProps) {
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
-        className="fixed top-4 right-4 bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-pink-200 z-50"
+        className="fixed top-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-rose-200 z-50"
       >
         <div className="flex items-center space-x-3">
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={togglePlay}
-            className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center text-white"
+            className="w-10 h-10 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full flex items-center justify-center text-white shadow-lg"
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
           </motion.button>

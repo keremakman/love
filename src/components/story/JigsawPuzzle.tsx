@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Puzzle, Sparkles } from 'lucide-react';
+import { Puzzle, Sparkles, RotateCcw } from 'lucide-react';
 
 interface JigsawPuzzleProps {
   imageUrl: string;
@@ -19,7 +19,8 @@ export function JigsawPuzzle({ imageUrl, completionMessage }: JigsawPuzzleProps)
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const [draggedPiece, setDraggedPiece] = useState<number | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
   const GRID_SIZE = 3; // 3x3 puzzle
 
   useEffect(() => {
@@ -37,64 +38,122 @@ export function JigsawPuzzle({ imageUrl, completionMessage }: JigsawPuzzleProps)
         id: i,
         correctPosition: i,
         currentPosition: i,
-        x: col * 100,
-        y: row * 100,
+        x: col * 120,
+        y: row * 120,
       });
     }
     
-    // Shuffle pieces
+    // Shuffle pieces properly
     const shuffled = [...initialPieces];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      const temp = shuffled[i].currentPosition;
+      // Swap current positions
+      const tempPos = shuffled[i].currentPosition;
       shuffled[i].currentPosition = shuffled[j].currentPosition;
-      shuffled[j].currentPosition = temp;
+      shuffled[j].currentPosition = tempPos;
+      
+      // Update x, y coordinates based on new positions
+      const iRow = Math.floor(shuffled[i].currentPosition / GRID_SIZE);
+      const iCol = shuffled[i].currentPosition % GRID_SIZE;
+      shuffled[i].x = iCol * 120;
+      shuffled[i].y = iRow * 120;
+      
+      const jRow = Math.floor(shuffled[j].currentPosition / GRID_SIZE);
+      const jCol = shuffled[j].currentPosition % GRID_SIZE;
+      shuffled[j].x = jCol * 120;
+      shuffled[j].y = jRow * 120;
     }
     
     setPieces(shuffled);
+    setIsCompleted(false);
   };
 
-  const handlePieceClick = (pieceId: number) => {
+  const handleMouseDown = (e: React.MouseEvent, pieceId: number) => {
     if (isCompleted) return;
+    
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const piece = pieces.find(p => p.id === pieceId);
+    if (!piece) return;
+    
+    setDraggedPiece(pieceId);
+    setDragOffset({
+      x: e.clientX - rect.left - piece.x,
+      y: e.clientY - rect.top - piece.y
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (draggedPiece === null || !containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const newX = e.clientX - rect.left - dragOffset.x;
+    const newY = e.clientY - rect.top - dragOffset.y;
+    
+    setPieces(prevPieces => 
+      prevPieces.map(piece => 
+        piece.id === draggedPiece 
+          ? { ...piece, x: Math.max(0, Math.min(240, newX)), y: Math.max(0, Math.min(240, newY)) }
+          : piece
+      )
+    );
+  };
+
+  const handleMouseUp = () => {
+    if (draggedPiece === null) return;
     
     setPieces(prevPieces => {
       const newPieces = [...prevPieces];
-      const clickedIndex = newPieces.findIndex(p => p.id === pieceId);
-      const emptyIndex = newPieces.findIndex(p => p.currentPosition === GRID_SIZE * GRID_SIZE - 1);
+      const draggedIndex = newPieces.findIndex(p => p.id === draggedPiece);
+      const draggedPieceData = newPieces[draggedIndex];
       
-      // Check if pieces are adjacent
-      const clickedPos = newPieces[clickedIndex].currentPosition;
-      const emptyPos = newPieces[emptyIndex].currentPosition;
+      // Snap to grid
+      const snapX = Math.round(draggedPieceData.x / 120) * 120;
+      const snapY = Math.round(draggedPieceData.y / 120) * 120;
+      const newPosition = Math.floor(snapY / 120) * GRID_SIZE + Math.floor(snapX / 120);
       
-      const clickedRow = Math.floor(clickedPos / GRID_SIZE);
-      const clickedCol = clickedPos % GRID_SIZE;
-      const emptyRow = Math.floor(emptyPos / GRID_SIZE);
-      const emptyCol = emptyPos % GRID_SIZE;
-      
-      const isAdjacent = 
-        (Math.abs(clickedRow - emptyRow) === 1 && clickedCol === emptyCol) ||
-        (Math.abs(clickedCol - emptyCol) === 1 && clickedRow === emptyRow);
-      
-      if (isAdjacent) {
-        // Swap positions
-        const temp = newPieces[clickedIndex].currentPosition;
-        newPieces[clickedIndex].currentPosition = newPieces[emptyIndex].currentPosition;
-        newPieces[emptyIndex].currentPosition = temp;
+      // Check if position is valid and not occupied by another piece
+      if (newPosition >= 0 && newPosition < GRID_SIZE * GRID_SIZE) {
+        const occupyingPiece = newPieces.find(p => p.currentPosition === newPosition && p.id !== draggedPiece);
         
-        // Check if puzzle is completed
-        const completed = newPieces.every(piece => piece.id === piece.currentPosition);
-        if (completed) {
-          setIsCompleted(true);
+        if (occupyingPiece) {
+          // Swap positions
+          const tempPos = draggedPieceData.currentPosition;
+          const tempX = draggedPieceData.x;
+          const tempY = draggedPieceData.y;
+          
+          draggedPieceData.currentPosition = occupyingPiece.currentPosition;
+          draggedPieceData.x = occupyingPiece.x;
+          draggedPieceData.y = occupyingPiece.y;
+          
+          occupyingPiece.currentPosition = tempPos;
+          occupyingPiece.x = tempX;
+          occupyingPiece.y = tempY;
+        } else {
+          // Move to empty position
+          draggedPieceData.currentPosition = newPosition;
+          draggedPieceData.x = snapX;
+          draggedPieceData.y = snapY;
         }
+      } else {
+        // Snap back to current position
+        const currentRow = Math.floor(draggedPieceData.currentPosition / GRID_SIZE);
+        const currentCol = draggedPieceData.currentPosition % GRID_SIZE;
+        draggedPieceData.x = currentCol * 120;
+        draggedPieceData.y = currentRow * 120;
+      }
+      
+      // Check if puzzle is completed
+      const completed = newPieces.every(piece => piece.id === piece.currentPosition);
+      if (completed) {
+        setIsCompleted(true);
       }
       
       return newPieces;
     });
-  };
-
-  const resetPuzzle = () => {
-    setIsCompleted(false);
-    initializePuzzle();
+    
+    setDraggedPiece(null);
   };
 
   if (!imageUrl) return null;
@@ -105,60 +164,69 @@ export function JigsawPuzzle({ imageUrl, completionMessage }: JigsawPuzzleProps)
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.2 }}
-        className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-pink-200"
+        className="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-rose-200"
       >
-        <div className="text-center mb-6">
-          <Puzzle className="w-8 h-8 text-pink-500 mx-auto mb-2" />
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">Memory Puzzle</h3>
-          <p className="text-gray-600">Put the pieces together to reveal a special message</p>
+        <div className="text-center mb-8">
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Puzzle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+          </motion.div>
+          <h3 className="text-3xl font-bold text-gray-800 mb-3 bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
+            Anı Yapbozu
+          </h3>
+          <p className="text-gray-600 text-lg">Parçaları birleştirerek özel mesajı ortaya çıkarın</p>
         </div>
         
         <div className="max-w-md mx-auto">
-          <div className="relative bg-gray-100 rounded-xl overflow-hidden" style={{ aspectRatio: '1' }}>
-            <div className="grid grid-cols-3 gap-1 p-2 h-full">
-              {pieces.map((piece) => {
-                const row = Math.floor(piece.currentPosition / GRID_SIZE);
-                const col = piece.currentPosition % GRID_SIZE;
-                const isLastPiece = piece.id === GRID_SIZE * GRID_SIZE - 1;
-                
-                return (
-                  <motion.div
-                    key={piece.id}
-                    whileHover={!isCompleted && !isLastPiece ? { scale: 1.05 } : {}}
-                    whileTap={!isCompleted && !isLastPiece ? { scale: 0.95 } : {}}
-                    onClick={() => handlePieceClick(piece.id)}
-                    className={`
-                      relative rounded-lg overflow-hidden cursor-pointer
-                      ${isLastPiece && !isCompleted ? 'bg-gray-200' : ''}
-                      ${isCompleted ? 'cursor-default' : 'hover:shadow-lg'}
-                    `}
-                    style={{
-                      backgroundImage: !isLastPiece || isCompleted ? `url(${imageUrl})` : 'none',
-                      backgroundSize: '300%',
-                      backgroundPosition: `${-piece.id % GRID_SIZE * 100}% ${-Math.floor(piece.id / GRID_SIZE) * 100}%`,
-                    }}
-                  >
-                    {isLastPiece && !isCompleted && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-4 h-4 bg-gray-400 rounded-full"></div>
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </div>
+          <div 
+            ref={containerRef}
+            className="relative bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl overflow-hidden border-4 border-rose-200 shadow-inner"
+            style={{ width: '360px', height: '360px' }}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+          >
+            {pieces.map((piece) => (
+              <motion.div
+                key={piece.id}
+                style={{
+                  position: 'absolute',
+                  left: piece.x,
+                  top: piece.y,
+                  width: '120px',
+                  height: '120px',
+                  backgroundImage: `url(${imageUrl})`,
+                  backgroundSize: '360px 360px',
+                  backgroundPosition: `${-piece.id % GRID_SIZE * 120}px ${-Math.floor(piece.id / GRID_SIZE) * 120}px`,
+                  cursor: draggedPiece === piece.id ? 'grabbing' : 'grab',
+                  zIndex: draggedPiece === piece.id ? 10 : 1,
+                }}
+                className="rounded-lg border-2 border-white shadow-lg hover:shadow-xl transition-all duration-200"
+                whileHover={!isCompleted ? { scale: 1.05 } : {}}
+                whileTap={!isCompleted ? { scale: 0.95 } : {}}
+                onMouseDown={(e) => handleMouseDown(e, piece.id)}
+                animate={draggedPiece === piece.id ? {} : {
+                  x: 0,
+                  y: 0,
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              />
+            ))}
           </div>
           
-          {!isCompleted && (
+          <div className="flex gap-4 mt-6">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={resetPuzzle}
-              className="mt-4 w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-200 font-medium"
+              onClick={initializePuzzle}
+              className="flex-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white py-3 px-6 rounded-xl hover:from-rose-600 hover:to-pink-600 transition-all duration-200 font-medium flex items-center justify-center shadow-lg"
             >
-              Shuffle Again
+              <RotateCcw className="w-5 h-5 mr-2" />
+              Yeniden Karıştır
             </motion.button>
-          )}
+          </div>
         </div>
       </motion.div>
 
@@ -169,36 +237,38 @@ export function JigsawPuzzle({ imageUrl, completionMessage }: JigsawPuzzleProps)
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
           >
             <motion.div
               initial={{ scale: 0.5, opacity: 0, y: 50 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.5, opacity: 0, y: 50 }}
-              className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl border border-pink-200"
+              className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-3xl p-10 max-w-md w-full text-center shadow-2xl border-2 border-rose-200"
             >
               <motion.div
                 animate={{ 
                   rotate: [0, 10, -10, 0],
-                  scale: [1, 1.1, 1]
+                  scale: [1, 1.2, 1]
                 }}
                 transition={{ 
-                  duration: 0.6,
+                  duration: 0.8,
                   repeat: Infinity,
                   repeatDelay: 2
                 }}
-                className="mb-6"
+                className="mb-8"
               >
-                <Sparkles className="w-16 h-16 text-pink-500 mx-auto" />
+                <Sparkles className="w-20 h-20 text-rose-500 mx-auto" />
               </motion.div>
               
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Congratulations!</h3>
+              <h3 className="text-3xl font-bold text-gray-800 mb-6 bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
+                Tebrikler!
+              </h3>
               
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-gray-700 text-lg mb-6 font-serif"
+                className="text-gray-700 text-xl mb-8 font-serif leading-relaxed"
               >
                 {completionMessage}
               </motion.p>
@@ -206,10 +276,10 @@ export function JigsawPuzzle({ imageUrl, completionMessage }: JigsawPuzzleProps)
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={resetPuzzle}
-                className="bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 px-6 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-200 font-medium"
+                onClick={initializePuzzle}
+                className="bg-gradient-to-r from-rose-500 to-pink-500 text-white py-4 px-8 rounded-xl hover:from-rose-600 hover:to-pink-600 transition-all duration-200 font-medium shadow-lg"
               >
-                Play Again
+                Tekrar Oyna
               </motion.button>
             </motion.div>
           </motion.div>

@@ -37,11 +37,11 @@ export function LoveCounter({ specialDate }: LoveCounterProps) {
   }, [specialDate]);
 
   const timeUnits = [
-    { label: 'Years', value: timeElapsed.years, color: 'from-pink-500 to-rose-500' },
-    { label: 'Days', value: timeElapsed.days, color: 'from-purple-500 to-indigo-500' },
-    { label: 'Hours', value: timeElapsed.hours, color: 'from-blue-500 to-cyan-500' },
-    { label: 'Minutes', value: timeElapsed.minutes, color: 'from-green-500 to-emerald-500' },
-    { label: 'Seconds', value: timeElapsed.seconds, color: 'from-yellow-500 to-orange-500' }
+    { label: 'Yıl', value: timeElapsed.years, color: 'from-rose-500 to-pink-500' },
+    { label: 'Gün', value: timeElapsed.days, color: 'from-purple-500 to-indigo-500' },
+    { label: 'Saat', value: timeElapsed.hours, color: 'from-blue-500 to-cyan-500' },
+    { label: 'Dakika', value: timeElapsed.minutes, color: 'from-green-500 to-emerald-500' },
+    { label: 'Saniye', value: timeElapsed.seconds, color: 'from-yellow-500 to-orange-500' }
   ];
 
   return (
@@ -49,12 +49,19 @@ export function LoveCounter({ specialDate }: LoveCounterProps) {
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
-      className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-pink-200"
+      className="bg-white/90 backdrop-blur-sm rounded-3xl p-10 shadow-2xl border border-rose-200"
     >
       <div className="text-center mb-6">
-        <Clock className="w-8 h-8 text-pink-500 mx-auto mb-2" />
-        <h3 className="text-2xl font-bold text-gray-800 mb-2">Our Love Story</h3>
-        <p className="text-gray-600">Time together</p>
+        <motion.div
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        >
+          <Clock className="w-10 h-10 text-rose-500 mx-auto mb-4" />
+        </motion.div>
+        <h3 className="text-3xl font-bold text-gray-800 mb-3 bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
+          Aşk Hikayemiz
+        </h3>
+        <p className="text-gray-700 text-lg">Birlikte geçirdiğimiz zaman</p>
       </div>
       
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -68,13 +75,14 @@ export function LoveCounter({ specialDate }: LoveCounterProps) {
           >
             <motion.div
               key={unit.value}
-              initial={{ scale: 1.2, opacity: 0 }}
+              initial={{ scale: 1.3, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="text-2xl md:text-3xl font-bold mb-1"
+              transition={{ type: "spring", stiffness: 200 }}
+              className="text-2xl md:text-4xl font-bold mb-2"
             >
               {unit.value}
             </motion.div>
-            <div className="text-xs md:text-sm opacity-90">{unit.label}</div>
+            <div className="text-sm md:text-base opacity-90 font-medium">{unit.label}</div>
           </motion.div>
         ))}
       </div>

@@ -29,12 +29,19 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8 }}
-        className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-pink-200"
+        className="bg-white/90 backdrop-blur-sm rounded-3xl p-10 shadow-2xl border border-rose-200"
       >
         <div className="text-center mb-6">
-          <Images className="w-8 h-8 text-pink-500 mx-auto mb-2" />
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">Our Memories</h3>
-          <p className="text-gray-600">Beautiful moments captured</p>
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Images className="w-10 h-10 text-rose-500 mx-auto mb-4" />
+          </motion.div>
+          <h3 className="text-3xl font-bold text-gray-800 mb-3 bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
+            Anılarımız
+          </h3>
+          <p className="text-gray-700 text-lg">Yakaladığımız güzel anlar</p>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

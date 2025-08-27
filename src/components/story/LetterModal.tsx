@@ -37,8 +37,8 @@ export function LetterModal({ isOpen, onClose, letter }: LetterModalProps) {
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"
               >
-                <X className="w-5 h-5" />
-              </motion.button>
+              <Heart className="w-6 h-6 text-rose-500 mr-2" />
+              <h3 className="text-2xl font-bold text-gray-800">Aşk Mektubu</h3>
             </div>
             
             <motion.div
@@ -59,9 +59,9 @@ export function LetterModal({ isOpen, onClose, letter }: LetterModalProps) {
               transition={{ delay: 0.5 }}
               className="mt-8 text-center"
             >
-              <div className="inline-flex items-center space-x-2 text-pink-500">
+              <div className="inline-flex items-center space-x-2 text-rose-500">
                 <Heart className="w-4 h-4 fill-current" />
-                <span className="text-sm font-medium">With all our love</span>
+                <span className="text-sm font-medium">Tüm sevgimizle</span>
                 <Heart className="w-4 h-4 fill-current" />
               </div>
             </motion.div>
